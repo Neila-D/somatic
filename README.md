@@ -29,3 +29,7 @@ Requires Node 18+.
 - [CLAUDE_MASTER_PROMPT.md](CLAUDE_MASTER_PROMPT.md) — full product vision and constraints
 - [ROADMAP.md](ROADMAP.md) — phases, acceptance criteria, architecture
 - [CLAUDE.md](CLAUDE.md) — notes for coding agents
+
+## License
+
+Released under the [MIT License](LICENSE). Contributions are welcome.
