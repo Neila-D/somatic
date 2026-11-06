@@ -19,7 +19,7 @@ const stroke = (id: string, x: number, y: number, view: Stroke['view'] = 'anteri
   id,
   layerId: DEFAULT_LAYER_ID,
   view,
-  brush: { pattern: 'glow', color: '#d9605a', intensity: 0.5, radius },
+  brush: { pattern: 'aching', color: '#d9605a', intensity: 0.5, radius, speed: 1 },
   points: [{ x, y }],
   seed: 1,
 });
@@ -54,7 +54,7 @@ describe('project persistence', () => {
   });
 
   it('rejects scenes with invalid strokes', () => {
-    const bad = addStroke(createProject(), { ...stroke('a', 1, 1), brush: { pattern: 'glow', color: 'red', intensity: 2, radius: 5 } });
+    const bad = addStroke(createProject(), { ...stroke('a', 1, 1), brush: { pattern: 'aching', color: 'red', intensity: 2, radius: 5, speed: 1 } });
     expect(() => parseProject(JSON.stringify(bad))).toThrow(ProjectError);
     const nan = JSON.parse(serializeProject(addStroke(createProject(), stroke('b', 1, 1))));
     nan.strokes[0].points = [{ x: 'a', y: 1 }];
@@ -115,5 +115,45 @@ describe('undo/redo with projects', () => {
     expect(h.present).toBe(empty);
     h = redo(h);
     expect(h.present.strokes).toHaveLength(1);
+  });
+});
+
+describe('schema migration', () => {
+  const v1 = () => ({
+    schemaVersion: 1,
+    app: 'somatic',
+    modelId: 'somatic-simplified-body-2d@1',
+    name: 'Old scene',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    layers: [{ id: 'layer-1', name: 'Layer 1', visible: true }],
+    strokes: ['glow', 'pulse', 'particles', 'angular', 'wavy', 'crosshatch'].map((pattern, i) => ({
+      id: `s${i}`,
+      layerId: 'layer-1',
+      view: 'anterior',
+      brush: { pattern, color: '#d9605a', intensity: 0.5, radius: 20 },
+      points: [{ x: 10 + i, y: 20 }],
+      seed: i,
+    })),
+  });
+
+  it('opens a version 1 scene, renaming brushes and adding speed', () => {
+    const p = parseProject(JSON.stringify(v1()));
+    expect(p.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(p.strokes.map((s) => s.brush.pattern)).toEqual([
+      'aching',
+      'throbbing',
+      'tingling',
+      'stabbing',
+      'radiating',
+      'pressure',
+    ]);
+    expect(p.strokes.every((s) => s.brush.speed === 1)).toBe(true);
+  });
+
+  it('keeps stroke geometry untouched when migrating', () => {
+    const raw = v1();
+    const p = parseProject(JSON.stringify(raw));
+    expect(p.strokes.map((s) => s.points)).toEqual(raw.strokes.map((s) => s.points));
   });
 });

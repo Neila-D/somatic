@@ -1,18 +1,24 @@
 import { VIEW_HEIGHT, VIEW_WIDTH, VIEWS } from '../core/types';
 import type { Project, ViewId } from '../core/types';
-import { drawBody } from './body';
+import { bodyOutline, drawBody } from './body';
 import { drawStroke } from './stamp';
 
-/** Draw the body and all visible strokes for one view, in model space. */
-export function renderView(ctx: CanvasRenderingContext2D, project: Project, view: ViewId): void {
+/**
+ * Draw the body and all visible strokes for one view, in model space, at time
+ * `t` seconds. Strokes are clipped to the body so paint never leaves it.
+ */
+export function renderView(ctx: CanvasRenderingContext2D, project: Project, view: ViewId, t = 0): void {
   drawBody(ctx, view);
   const hidden = new Set(project.layers.filter((l) => !l.visible).map((l) => l.id));
+  ctx.save();
+  ctx.clip(bodyOutline());
   for (const stroke of project.strokes) {
-    if (stroke.view === view && !hidden.has(stroke.layerId)) drawStroke(ctx, stroke);
+    if (stroke.view === view && !hidden.has(stroke.layerId)) drawStroke(ctx, stroke, t);
   }
+  ctx.restore();
 }
 
-/** Render both views side by side to a PNG blob. */
+/** Render both views side by side to a PNG blob (a still frame). */
 export function exportPng(project: Project, scale = 2): Promise<Blob> {
   const gap = 40;
   const labelH = 40;

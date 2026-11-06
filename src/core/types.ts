@@ -6,7 +6,18 @@
  * box, independent of screen size or device pixel ratio.
  */
 
-export const PATTERNS = ['glow', 'pulse', 'particles', 'angular', 'wavy', 'crosshatch'] as const;
+/** Brush ids. Names follow common pain descriptors; looks are metaphors only. */
+export const PATTERNS = [
+  'aching',
+  'throbbing',
+  'burning',
+  'stabbing',
+  'shooting',
+  'tingling',
+  'pressure',
+  'radiating',
+  'numbness',
+] as const;
 export type PatternId = (typeof PATTERNS)[number];
 
 export const VIEWS = ['anterior', 'posterior'] as const;
@@ -28,6 +39,8 @@ export interface BrushSettings {
   intensity: number;
   /** Radius in model units */
   radius: number;
+  /** Animation speed multiplier. 0 = still. */
+  speed: number;
 }
 
 export interface Stroke {
@@ -59,4 +72,4 @@ export interface Project {
   strokes: Stroke[];
 }
 
-export type Tool = 'paint' | 'erase';
+export type Tool = 'paint' | 'erase' | 'pan';

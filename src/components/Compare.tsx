@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { PatternPreview } from './PatternPreview';
 import { PATTERN_INFO } from '../core/patterns';
 import type { PatternId } from '../core/types';
+import { prefersReducedMotion } from '../motion';
 
 /**
  * Synthetic comparison exercise. The prompts are fictional and NO "correct"
@@ -15,16 +16,17 @@ interface Trial {
 }
 
 const TRIALS: Trial[] = [
-  { id: 't1', prompt: 'A dull sensation that feels broad and diffuse.', options: ['glow', 'crosshatch', 'angular'] },
-  { id: 't2', prompt: 'A sudden, sharp sensation in one small spot.', options: ['angular', 'pulse', 'wavy'] },
-  { id: 't3', prompt: 'A sensation that feels rhythmic, like a beat.', options: ['pulse', 'glow', 'particles'] },
-  { id: 't4', prompt: 'A prickly, scattered sensation across an area.', options: ['particles', 'wavy', 'crosshatch'] },
+  { id: 't1', prompt: 'A dull sensation that feels broad and diffuse.', options: ['aching', 'pressure', 'stabbing'] },
+  { id: 't2', prompt: 'A sudden, sharp sensation in one small spot.', options: ['stabbing', 'shooting', 'throbbing'] },
+  { id: 't3', prompt: 'A sensation that feels rhythmic, like a beat.', options: ['throbbing', 'aching', 'radiating'] },
+  { id: 't4', prompt: 'A prickly, scattered sensation across an area.', options: ['tingling', 'numbness', 'burning'] },
 ];
 
 const COLOR = '#5d6b80'; // neutral, so only pattern differs between options
 
 export function Compare() {
   const [choices, setChoices] = useState<Record<string, PatternId>>({});
+  const [motion, setMotion] = useState(() => !prefersReducedMotion());
   const done = TRIALS.every((t) => choices[t.id]);
 
   return (
@@ -39,6 +41,9 @@ export function Compare() {
           </p>
         </div>
         <div className="head-actions">
+          <button className="btn" onClick={() => setMotion((m) => !m)} aria-pressed={motion}>
+            {motion ? '⏸ Show still' : '▶ Show motion'}
+          </button>
           <button className="btn" onClick={() => setChoices({})} disabled={Object.keys(choices).length === 0}>
             Reset exercise
           </button>
@@ -59,7 +64,15 @@ export function Compare() {
                   className={`option ${choices[trial.id] === id ? 'on' : ''}`}
                   onClick={() => setChoices((c) => ({ ...c, [trial.id]: id }))}
                 >
-                  <PatternPreview pattern={id} color={COLOR} intensity={0.8} radius={22} width={150} height={90} />
+                  <PatternPreview
+                    pattern={id}
+                    color={COLOR}
+                    intensity={0.8}
+                    radius={22}
+                    width={150}
+                    height={90}
+                    animate={motion}
+                  />
                   <span>{PATTERN_INFO[id].label}</span>
                 </button>
               ))}

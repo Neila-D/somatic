@@ -1,7 +1,7 @@
 import { PATTERNS, VIEWS } from './types';
 import type { BrushSettings, Layer, Point, Project, Stroke, ViewId } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const MODEL_ID = 'somatic-simplified-body-2d@1';
 export const DEFAULT_LAYER_ID = 'layer-1';
 
@@ -77,12 +77,12 @@ export function sampleProject(now = new Date()): Project {
   return {
     ...base,
     strokes: [
-      mk('sample-glow', 'anterior', { pattern: 'glow', color: '#d9605a', intensity: 0.7, radius: 38 }, [{ x: 170, y: 215 }], 11),
-      mk('sample-pulse', 'anterior', { pattern: 'pulse', color: '#7c6bc4', intensity: 0.8, radius: 18 }, [{ x: 82, y: 168 }], 22),
+      mk('sample-glow', 'anterior', { pattern: 'aching', color: '#d9605a', intensity: 0.7, radius: 38, speed: 1 }, [{ x: 170, y: 215 }], 11),
+      mk('sample-pulse', 'anterior', { pattern: 'throbbing', color: '#7c6bc4', intensity: 0.8, radius: 18, speed: 1 }, [{ x: 82, y: 168 }], 22),
       mk(
         'sample-wavy',
         'posterior',
-        { pattern: 'wavy', color: '#4a8aa6', intensity: 0.8, radius: 34 },
+        { pattern: 'radiating', color: '#4a8aa6', intensity: 0.8, radius: 34, speed: 1 },
         [{ x: 150, y: 270 }],
         33,
       ),
@@ -98,11 +98,37 @@ export function serializeProject(project: Project): string {
   return JSON.stringify(project, null, 2);
 }
 
-/**
- * Migrations upgrade a raw project from version N to N+1. There are none yet
- * (version 1 is the first schema); add `1: (p) => ...` here when it changes.
- */
-const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {};
+/** v1 used descriptive visual names; v2 names brushes after pain descriptors. */
+const V1_TO_V2_PATTERN: Record<string, string> = {
+  glow: 'aching',
+  pulse: 'throbbing',
+  particles: 'tingling',
+  angular: 'stabbing',
+  wavy: 'radiating',
+  crosshatch: 'pressure',
+};
+
+/** Migrations upgrade a raw project from version N to N+1. */
+const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
+  // v1 -> v2: rename patterns and add the per-brush animation `speed`.
+  1: (raw) => ({
+    ...raw,
+    strokes: Array.isArray(raw.strokes)
+      ? raw.strokes.map((s: unknown) =>
+          isObj(s) && isObj(s.brush)
+            ? {
+                ...s,
+                brush: {
+                  ...s.brush,
+                  pattern: V1_TO_V2_PATTERN[s.brush.pattern as string] ?? s.brush.pattern,
+                  speed: 1,
+                },
+              }
+            : s,
+        )
+      : raw.strokes,
+  }),
+};
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -119,7 +145,10 @@ function validBrush(v: unknown): v is BrushSettings {
     v.intensity >= 0 &&
     v.intensity <= 1 &&
     isNum(v.radius) &&
-    v.radius > 0
+    v.radius > 0 &&
+    isNum(v.speed) &&
+    v.speed >= 0 &&
+    v.speed <= 3
   );
 }
 
